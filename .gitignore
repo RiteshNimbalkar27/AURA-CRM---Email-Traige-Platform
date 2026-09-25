@@ -1,0 +1,45 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Data directories (DB volumes, model cache) - never commit
+data/
+
+# Node
+node_modules/
+dist/
+.next/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Real/live data guard
+*_real_*
+*_live_*
+*_production_*
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/

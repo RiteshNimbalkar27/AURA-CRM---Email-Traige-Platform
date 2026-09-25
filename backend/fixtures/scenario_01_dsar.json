@@ -1,0 +1,31 @@
+{
+  "scenario_id": "scenario_01_dsar",
+  "version": "1.0.0",
+  "description": "Customer submits a GDPR Data Subject Access Request (DSAR). Expected: legal flag + compliance ticket + approval-required holding acknowledgement citing compliance policy.",
+  "messages": [
+    {
+      "external_message_id": "msg_dsar_001_2024_01_15",
+      "sender_email": "sarah.mitchell@acmecorp.example",
+      "subject": "GDPR Data Subject Access Request - Formal Notice",
+      "body": "Dear Nexus Software Support Team,\n\nI am writing to formally exercise my rights under the General Data Protection Regulation (GDPR), specifically Article 15 (Right of Access). This is a formal Data Subject Access Request (DSAR).\n\nI request that you provide me with:\n1. Confirmation of whether Nexus Software processes my personal data\n2. A copy of all personal data you hold about me, including: name, email address, IP addresses, usage data, support ticket history, payment information\n3. Information about the purposes of processing\n4. The categories of personal data being processed\n5. The recipients or categories of recipients to whom my data has been disclosed\n6. The retention period for my personal data\n7. Information about any automated decision-making, including profiling\n\nPlease note that under GDPR, you are required to respond within 30 calendar days of receiving this request. I expect a response no later than February 14, 2024.\n\nI am also requesting information about your data sub-processors as required under Article 15(1)(c).\n\nIf you fail to respond within the statutory timeframe, I am prepared to file a complaint with the Information Commissioner's Office (ICO) and seek appropriate legal remedies.\n\nPlease confirm receipt of this request by return email.\n\nYours sincerely,\nSarah Mitchell\nAcmeCorp Ltd.\nEmployee ID: SM-2847\nsarah.mitchell@acmecorp.example",
+      "received_at": "2024-01-15T09:23:00Z",
+      "external_thread_id": "thread_dsar_001"
+    }
+  ],
+  "expected_outcomes": {
+    "urgency": "high",
+    "category": "legal_compliance",
+    "queue": "legal_compliance",
+    "should_escalate": false,
+    "should_draft": true,
+    "draft_requires_approval": true,
+    "should_flag_legal": true,
+    "legal_issue_type": "dsar",
+    "should_create_ticket": true,
+    "ticket_queue": "legal_compliance",
+    "no_draft_on_critical": false,
+    "must_cite_policy": "gdpr_hipaa_soc2_data_residency",
+    "human_review_required": true,
+    "notes": "Draft must be a holding acknowledgement confirming receipt and 30-day response window. Must cite GDPR Article 15 and compliance policy. No PII should be included in draft."
+  }
+}

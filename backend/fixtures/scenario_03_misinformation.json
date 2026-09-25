@@ -1,0 +1,32 @@
+{
+  "scenario_id": "scenario_03_misinformation",
+  "version": "1.0.0",
+  "description": "Customer heard misinformation about API rate limit cuts on LinkedIn. Expected: policy retrieval from API limits doc, empathetic cited draft, escalation with discrepancy summary.",
+  "messages": [
+    {
+      "external_message_id": "msg_misinfo_001_2024_02_05",
+      "sender_email": "tom.bradley@techstartup.example",
+      "subject": "Urgent: Rumor about API rate limits being cut 80%?",
+      "body": "Hi Nexus Support Team,\n\nI hope you can help me with something urgent. I'm Tom Bradley, CTO at TechStartup Inc. We're a Professional plan customer (account #TSI-8821) and have been with Nexus for 18 months.\n\nI was scrolling LinkedIn this morning and saw a post by someone claiming that Nexus Software is planning to cut API rate limits by 80% starting next month. The post had 47 likes and several comments from other Nexus customers expressing concern.\n\nThis is extremely concerning to us. We currently process approximately 380 API calls per minute during peak hours as part of our core product integration. An 80% reduction would make Nexus completely unusable for us and we'd have no choice but to migrate to a competitor.\n\nCan you please:\n1. Confirm whether this rumor is true\n2. If true, when does this take effect and what's the actual new limit?\n3. If false, can you provide an official statement we can share with the community?\n\nWe have an all-hands meeting tomorrow and our team is already worried. This needs to be addressed today.\n\nThanks,\nTom Bradley\nCTO, TechStartup Inc.\ntom.bradley@techstartup.example | +1 (555) 234-5678",
+      "received_at": "2024-02-05T10:15:00Z",
+      "external_thread_id": "thread_misinfo_001"
+    }
+  ],
+  "expected_outcomes": {
+    "urgency": "medium",
+    "category": "product_support",
+    "queue": "support_operations",
+    "should_escalate": true,
+    "escalation_queue": "support_operations",
+    "escalation_priority": "medium",
+    "escalation_reason": "Misinformation spreading on social media about API rate limits — discrepancy between public claims and actual policy requires official response",
+    "should_draft": true,
+    "draft_requires_approval": true,
+    "should_flag_legal": false,
+    "should_create_ticket": false,
+    "no_draft_on_critical": false,
+    "must_cite_policy": "api_limits_and_deprecations",
+    "human_review_required": false,
+    "notes": "Agent should search KB for API limits policy, retrieve accurate rate limit information, draft an empathetic response citing the actual policy (Professional plan: 500 req/min, no planned cuts), and create an escalation noting the social media misinformation for the communications team."
+  }
+}

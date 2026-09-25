@@ -1,0 +1,80 @@
+version: '3.9'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: aura-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aura_db}
+      POSTGRES_USER: ${POSTGRES_USER:-aura}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aura_dev_password}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aura} -d ${POSTGRES_DB:-aura_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: aura-redis
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aura-backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-aura}:${POSTGRES_PASSWORD:-aura_dev_password}@db:5432/${POSTGRES_DB:-aura_db}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data/model_cache:/app/data/model_cache
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aura-worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-aura}:${POSTGRES_PASSWORD:-aura_dev_password}@db:5432/${POSTGRES_DB:-aura_db}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data/model_cache:/app/data/model_cache
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: python -m arq app.worker.main.WorkerSettings
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aura-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

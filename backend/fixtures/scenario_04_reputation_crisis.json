@@ -1,0 +1,35 @@
+{
+  "scenario_id": "scenario_04_reputation_crisis",
+  "version": "1.0.0",
+  "description": "Customer threatening public review, blog post, TechCrunch contact, and investor outreach. Expected: web enrichment triggered (sentiment <= -0.60), reputation_retention escalation, retention draft.",
+  "messages": [
+    {
+      "external_message_id": "msg_reputation_001_2024_02_10",
+      "sender_email": "jennifer.walsh@retailcorp.example",
+      "subject": "Formal Complaint - We are Done with Nexus",
+      "body": "To whoever actually reads these emails at Nexus,\n\nI am writing this as a formal complaint and as fair warning: if this is not resolved today, I will be taking significant action.\n\nRetailCorp has been a Nexus Enterprise customer for 3 years, paying $4,200/month ($50,400/year). In the last 6 weeks, we have experienced 4 separate outages affecting our entire team of 180 users. Each outage lasted between 2-6 hours. Your status page showed 'investigating' for hours with no updates. Our team lost a combined 340+ hours of productivity.\n\nHere is what I am going to do if I don't receive a personal call from a VP-level person at Nexus TODAY:\n1. I will post a detailed 1-star review on G2 with specifics of every outage\n2. I will publish a blog post titled 'Why We're Leaving Nexus' on our company blog (87,000 monthly readers)\n3. I have a call tomorrow with Sarah Chen from TechCrunch who covers SaaS reliability — I will share our incident logs\n4. We have our Series B investor meeting next Thursday — I intend to use Nexus as an example of vendor risk\n\nI am also consulting with our legal team about SLA credits and potential breach of contract claims given that we are on a 99.9% uptime SLA.\n\nDo NOT send me a template response. I want a personal, direct reply from someone with authority.\n\nJennifer Walsh\nCOO, RetailCorp\njennifer.walsh@retailcorp.example",
+      "received_at": "2024-02-10T14:32:00Z",
+      "external_thread_id": "thread_reputation_001"
+    }
+  ],
+  "expected_outcomes": {
+    "urgency": "high",
+    "category": "reputation",
+    "queue": "reputation_retention",
+    "sentiment_score_max": -0.60,
+    "should_trigger_web_enrichment": true,
+    "web_enrichment_reason": "public review threat + press inquiry + investor language + sentiment <= -0.60",
+    "should_escalate": true,
+    "escalation_queue": "reputation_retention",
+    "escalation_priority": "high",
+    "should_draft": true,
+    "draft_requires_approval": true,
+    "draft_tone": "empathetic",
+    "should_flag_legal": false,
+    "should_create_ticket": false,
+    "no_draft_on_critical": false,
+    "must_cite_policy": "sla_and_credits",
+    "human_review_required": true,
+    "notes": "Sentiment should be <= -0.60 to trigger web enrichment. Agent should check SLA credits policy, draft empathetic retention offer citing SLA credit policy. Also escalate to reputation_retention queue. Web enrichment should check G2 review URL."
+  }
+}

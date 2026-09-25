@@ -1,0 +1,42 @@
+{
+  "scenario_id": "scenario_05_conflicting_signals",
+  "version": "1.0.0",
+  "description": "Multi-message thread. First message (2 weeks ago): sales agreed $65/mo for 10 seats. Now billing complaint about being charged $79/mo. Expected: thread history retrieved, correct agreed pricing tier identified, billing_refund category.",
+  "messages": [
+    {
+      "external_message_id": "msg_conflict_001_2024_01_22",
+      "sender_email": "david.chen@globaltech.example",
+      "subject": "Confirming our Professional plan pricing agreement",
+      "body": "Hi team,\n\nJust wanted to confirm in writing what David from your sales team agreed to on our call today.\n\nWe're signing up for the Professional plan with 10 seats. Based on the 10+ seat volume discount (10% off), our price should be:\n- Standard Professional: $79/month\n- 10% volume discount: -$7.90/month\n- Our agreed price: $71.10/month\n\nWait, actually Marcus from your sales team said it would be $65/month flat for our first year as a promotional price for signing the annual contract. He also mentioned this included a free migration support session worth $500.\n\nCan you confirm:\n1. The agreed price is $65/month (annual billing = $780/year total)\n2. The free migration session is included\n3. This promotional price is locked for 12 months\n\nThanks,\nDavid Chen\nHead of Operations, GlobalTech\ndavid.chen@globaltech.example",
+      "received_at": "2024-01-22T11:05:00Z",
+      "external_thread_id": "thread_conflict_001"
+    },
+    {
+      "external_message_id": "msg_conflict_002_2024_02_05",
+      "sender_email": "david.chen@globaltech.example",
+      "subject": "RE: Confirming our Professional plan pricing agreement - URGENT billing issue",
+      "body": "Hi,\n\nI'm following up on my email from January 22nd (see below). We agreed to $65/month for our Professional plan with 10 seats.\n\nHowever, our first invoice that just arrived shows a charge of $79/month — that's $14/month MORE than agreed.\n\nThis is unacceptable. We signed an annual contract based on the $65/month price that Marcus from your sales team promised. I have the email chain between us where he confirmed this price.\n\nI need this corrected immediately:\n1. Adjust our invoice to $65/month ($780/year)\n2. Apply a credit for the overcharge of $14\n3. Confirm in writing that our price is locked at $65/month for the full 12 months\n\nIf this isn't resolved by end of day, I will be contacting my account manager and considering whether GlobalTech should continue with Nexus.\n\nDavid Chen\nHead of Operations, GlobalTech",
+      "received_at": "2024-02-05T09:30:00Z",
+      "external_thread_id": "thread_conflict_001"
+    }
+  ],
+  "expected_outcomes": {
+    "urgency": "medium",
+    "category": "billing_refund",
+    "queue": "support_operations",
+    "should_retrieve_thread_history": true,
+    "thread_history_reveals": "Prior agreement for $65/month promotional pricing for first year with 10-seat annual Professional plan",
+    "correct_price": 65.0,
+    "should_escalate": false,
+    "should_draft": true,
+    "draft_requires_approval": true,
+    "should_flag_legal": false,
+    "should_create_ticket": true,
+    "ticket_queue": "support_operations",
+    "ticket_title": "Billing correction: GlobalTech promotional pricing $65/mo not applied correctly",
+    "no_draft_on_critical": false,
+    "must_cite_policy": "pricing_tiers_and_discounts",
+    "human_review_required": false,
+    "notes": "The agent MUST call get_thread_history to retrieve message 1 from this thread. The thread history reveals the $65/month agreed price. The draft should acknowledge the error, confirm the correct price, and mention the credit for the $14 overcharge. Grandfathered pricing policy should be cited."
+  }
+}

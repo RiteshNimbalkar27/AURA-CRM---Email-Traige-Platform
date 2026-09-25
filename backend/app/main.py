@@ -77,6 +77,8 @@ app.include_router(rag_router, prefix="/api", tags=["RAG"])
 from app.api.inbox import router as inbox_router  # noqa: E402
 app.include_router(inbox_router, prefix="/api", tags=["Inbox"])
 
+from app.api.agent_api import router as agent_router  # noqa: E402
+app.include_router(agent_router, prefix="/api", tags=["Agent"])
 
 
 @app.get("/health", tags=["System"])

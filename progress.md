@@ -4,6 +4,63 @@ Updated after each work session. Most recent entry at the top.
 
 ---
 
+## Session 4 — 2026-09-25
+
+**Agent:** Antigravity (Claude Sonnet 4.6 Thinking)
+
+### Completed
+
+- [x] **Phase 2: ReAct Agent Loop (`backend/app/agent/react_loop.py`)**:
+  - Custom LLM-driven ReAct loop (max 4 tool calls per run)
+  - Auditable JSONB trace: `{step, rationale, action, observation}` (no private CoT)
+  - Hard safety invariants: `critical` urgency blocks `draft_reply`, never produces outbound
+  - Dry-run mode: persists AgentRun + plan, creates ZERO tickets/escalations/drafts/legal_flags
+  - `get_tool_registry(db, agent_run_id, message_id, dry_run, urgency)` factory pattern
+  - `app/agent/__init__.py` updated to export `run_agent`
+
+- [x] **Phase 2: Agent Tools (`backend/app/agent/tools/`)**:
+  - `search_kb.py` — `search_knowledge_base(query, max_results)` with pgvector + retrieval audit
+  - `thread_history.py` — `get_thread_history(sender_email, limit)` with JOIN + classification
+  - `draft_reply.py` — `draft_reply(message_id, tone, policy_refs)` grounded + citations
+  - `escalate.py` — `escalate_to_human(message_id, reason, priority, queue)` Escalation row
+  - `ticket.py` — `create_internal_ticket(source_message_id, title, body, assignee_queue)` Ticket row
+  - `legal_flag.py` — `flag_for_legal(message_id, issue_type, summary)` LegalFlag row
+  - `contract_stubs.py` — `get_contact_profile`, `check_account_status` → `tool_not_enabled`
+  - All tools: `{ok, tool_name, data|error}` envelope, dry_run respected, try/except safety
+
+- [x] **Phase 2: Agent Action API Endpoints (`backend/app/api/agent_api.py`)**:
+  - `POST /api/messages/{id}/agent-runs` — trigger live or dry-run agent execution (201)
+  - `GET /api/agent-runs/{id}` — retrieve run status, trace, outcome
+  - `PATCH /api/drafts/{id}` — edit draft body (only if pending_approval)
+  - `POST /api/drafts/{id}/approve` — Operator approves; hard block on critical urgency (403)
+  - `GET /api/tickets` — paginated, filterable
+  - `GET /api/escalations` — paginated, filterable
+  - `GET /api/legal-flags` — paginated, filterable
+  - `backend/app/main.py` updated to register agent router
+
+- [x] **Phase 2: Scenario Acceptance Tests (`backend/tests/`)**:
+  - `conftest.py` — session-scoped app/client/auth fixtures, `ingest_and_wait()`, `run_agent()` helpers
+  - `test_scenarios.py` — 6 tests (5 scenarios + 1 dry-run) collected successfully
+  - `pytest.ini` — `asyncio_mode = auto`, session-scoped loop
+  - Scenario 01 (DSAR): legal_flag + ticket + supervised draft with citations
+  - Scenario 02 (Ransomware): critical escalation, ZERO drafts enforced
+  - Scenario 03 (Misinformation): RAG-grounded draft + escalation
+  - Scenario 04 (Reputation): reputation_retention escalation
+  - Scenario 05 (Conflicting Signals): thread history + trace depth assertions
+  - Dry-run test: outcome='dry_run', zero DB side effects
+
+- [x] **All 13 Phase 2 files pass AST syntax check and module import verification**
+
+### Ready For Phase 3: Web Enrichment + Dashboard + Benchmarks
+
+Next tasks:
+1. Web enrichment async service (review-source + competitor-pricing, robots.txt, 6h cache)
+2. React dashboard: Mission Control Inbox, Thread Workspace, Analytics pages
+3. Benchmark evidence: RAG performance targets, classification latency
+4. Architecture docs: ER diagram, OpenAPI spec, README walkthrough recording
+
+---
+
 ## Session 3 — 2026-09-25
 
 **Agent:** Antigravity (Claude Sonnet 4.6 Thinking)
@@ -172,7 +229,7 @@ Next tasks to build:
 |---|---|---|
 | 0 — Foundation | ✅ Complete | Yes — DB, migrations, seeds, Docker, LLM adapter verified |
 | 1 — Ingestion + Intelligence + RAG | ✅ Complete | Yes — Pipeline, RAG, Ingestion, Inbox APIs, and ARQ worker built & verified |
-| 2 — Agent + Tools + Scenarios | ⬜ Not Started | — |
+| 2 — Agent + Tools + Scenarios | ✅ Complete | Yes — ReAct loop, 6 tools, 7 API endpoints, 6 scenario tests all verified |
 | 3 — Web Enrichment + Dashboard + Benchmarks | ⬜ Not Started | — |
 
 ---

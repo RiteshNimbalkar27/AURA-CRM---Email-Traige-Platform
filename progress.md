@@ -4,6 +4,94 @@ Updated after each work session. Most recent entry at the top.
 
 ---
 
+## Session 5 — 2026-10-15
+
+**Agent:** Antigravity (Claude Sonnet 4.6 Thinking)
+
+### Completed
+
+- [x] **Phase 3: Web Enrichment Service (`backend/app/services/web_enrichment.py`)**:
+  - `get_or_fetch_market_intel(db, url)` async entry point
+  - 6-hour TTL cache backed by `market_intel_cache` DB table
+  - Robots.txt checked via `urllib.robotparser` before every fresh fetch
+  - Only fetches URLs from settings (`ENRICHMENT_REVIEW_URL`, `ENRICHMENT_COMPETITOR_URL`)
+  - Stale fallback: returns last cached row with `stale=True` on fresh-fetch failure
+  - Status tracking: `success | failed | robots_denied | timeout`
+  - Returns `{url, fetched_at, summary, raw_text, status, stale, error}` envelope
+
+- [x] **Phase 3: CRM & Analytics API (`backend/app/api/crm_api.py`)**:
+  - `GET /api/contacts/{email}` — contact profile + account + last 5 classifications
+  - `PATCH /api/contacts/{email}/status` — supervisor-only status update
+  - `GET /api/analytics/sentiment-trend` — daily avg sentiment (last N days, optional contact filter)
+  - `GET /api/analytics/category-breakdown` — count per category last N days
+  - `GET /api/analytics/at-risk-accounts` — accounts with at_risk contacts + last sentiment
+  - `GET /api/market-intelligence` — web enrichment trigger (`?url=review|competitor`)
+  - `GET /api/audit/{entity_type}/{entity_id}` — audit lookup for agent_run/draft/ticket/escalation/legal_flag
+
+- [x] **Phase 3: `backend/app/main.py` Updated**:
+  - CRM router registered under `/api` with `["CRM & Analytics"]` tag
+  - CORS expanded to include Vite dev server ports (`localhost:5173`, `127.0.0.1:5173`)
+
+- [x] **Phase 3: React Dashboard Frontend (`frontend/src/`)**:
+  - `src/api/client.ts` — Typed Axios client with JWT Bearer interceptor + all API functions
+  - `src/hooks/useAuth.ts` — JWT auth hook (localStorage `aura_token`, login/logout, expiry check)
+  - `src/components/Layout.tsx` — Dark slate sidebar (240px, AURA logo, nav links, user/logout)
+  - `src/components/ProtectedRoute.tsx` — Auth guard with redirect to /login
+  - `src/pages/Login.tsx` — Login page with AURA branding, error state, loading spinner
+  - `src/pages/MissionControl.tsx` — Inbox: stat cards, filter bar, paginated threads with urgency badges
+  - `src/pages/ThreadWorkspace.tsx` — 60/40 split: message timeline + agent action panel (run/approve/edit)
+  - `src/pages/Analytics.tsx` — Recharts: sentiment LineChart, category BarChart, at-risk accounts table
+  - `src/App.tsx` — Updated: /login public + protected routes wrapped in Layout
+
+- [x] **Production UI Redesign (In-House Professional Theme)**:
+  - Eliminated AI aesthetic tropes: removed gradients, hero cards, rainbow badges, emojis, and soft shadows.
+  - Tighter border-based layout with compact header metric bars, flat tables, and monospace draft/trace inspector.
+  - Hardened all charts and tables against sparse data with unified slate palette.
+
+- [x] **Bug Fixes & End-to-End ReAct Agent Loop Verification**:
+  - Fixed React fatal white-screen crash in `AgentRunPanel`: `step.observation` dictionary is now stringified safely.
+  - Fixed Analytics white screen: array wrappers safely extract data envelopes (`trend`, `breakdown`, `at_risk_accounts`).
+  - Fixed `run_agent` argument mapping in `backend/app/api/agent_api.py`.
+  - Fixed tool registry binding in `backend/app/agent/react_loop.py` to correctly map LLM arguments to tool factories.
+  - Increased ReAct loop `max_tokens` to 2048 to prevent truncated reasoning finish reasons.
+  - Verified live test: `run_agent` ran in dry-run mode against database message, executed `escalate_to_human`, and succeeded with status `dry_run`.
+
+### Next Phases: Dual-Agent Critic & Active Learning Flywheel (Phases 3A – 3D)
+
+Brainstormed and aligned via `/grill-me` interview. Ready for direct execution:
+
+- [ ] **Phase 3A: Database & Backend Critic / Auditor**:
+  - Create `golden_examples` table schema + Alembic migration (`id`, `source_message_id`, `category`, `original_draft`, `edited_draft`, `semantic_diff`, `correction_tag`, `embedding` vector(384), `verified_by`, `is_active`, `created_at`)
+  - Create `app/agent/critic.py` — Adversarial Critic / Judge agent (Grounding Score 0–100%, Hallucination Risk rating, citation verification, PII/tone check)
+  - Create `app/api/golden_memory_api.py` — `GET /api/golden-examples`, `POST /api/golden-examples`, and diff capture endpoint
+  - Register router in `app/main.py`
+
+- [ ] **Phase 3B: ReAct Generator Memory Integration**:
+  - Integrate pgvector similarity search over `golden_examples` inside `react_loop.py` to inject dynamic operator-verified few-shot references
+  - Wire Critic agent to run automatically after draft generation, storing structured audit report in `drafts.audit_report` (JSONB)
+  - Update `AgentRunResponse` to include the Critic audit card summary
+
+- [ ] **Phase 3C: Frontend Workspace Audit Card & Diff Modal**:
+  - Build interactive "Compliance & Grounding Audit" card in `ThreadWorkspace.tsx` showing score, hallucination rating, and citation checklist
+  - Enforce soft-lock on approval if Grounding Score < 70% or Hallucination Risk is High (requires operator edit or explicit override checkbox)
+  - Build visual text diff modal with 1-click failure taxonomy tagging (`Policy Fix`, `Hallucination`, `Tone Adjustment`, `Missing Context`) when saving draft edits
+
+- [ ] **Phase 3D: Golden Memory Dashboard View (`/golden-memory`)**:
+  - Create `/golden-memory` route and add sidebar navigation item
+  - Build management dashboard: searchable diff table, category filters, and active/retire toggle switches for Golden Examples
+
+---
+
+### Subsequent Phase: Architecture Docs + Benchmarks (Phase 4)
+
+Will commence immediately following completion of Phases 3A – 3D:
+1. OpenAPI spec export and documentation
+2. Benchmark evidence: RAG performance targets, classification latency measurements
+3. README walkthrough with architecture diagrams and demo guide
+4. Docker Compose full-stack deployment validation
+
+---
+
 ## Session 4 — 2026-09-25
 
 **Agent:** Antigravity (Claude Sonnet 4.6 Thinking)
@@ -230,7 +318,12 @@ Next tasks to build:
 | 0 — Foundation | ✅ Complete | Yes — DB, migrations, seeds, Docker, LLM adapter verified |
 | 1 — Ingestion + Intelligence + RAG | ✅ Complete | Yes — Pipeline, RAG, Ingestion, Inbox APIs, and ARQ worker built & verified |
 | 2 — Agent + Tools + Scenarios | ✅ Complete | Yes — ReAct loop, 6 tools, 7 API endpoints, 6 scenario tests all verified |
-| 3 — Web Enrichment + Dashboard + Benchmarks | ⬜ Not Started | — |
+| 3 — Core Web Enrichment & In-House Dashboard | ✅ Complete | Yes — Web enrichment service (6h cache, robots.txt), 7 CRM/analytics API endpoints, production-styled React dashboard (Login, Mission Control, Thread Workspace, Analytics) — verified |
+| 3A — Database & Backend Critic / Auditor | ⬜ Not Started | Spec ready — golden_examples schema, app/agent/critic.py, API endpoints |
+| 3B — ReAct Generator Memory Integration | ⬜ Not Started | Spec ready — pgvector few-shot retrieval in react_loop.py, audit report persistence |
+| 3C — Frontend Workspace Audit Card & Diff Modal | ⬜ Not Started | Spec ready — Compliance & Grounding Audit card, soft-block, visual text diff modal |
+| 3D — Golden Memory Dashboard View | ⬜ Not Started | Spec ready — /golden-memory route, searchable diff table, active/retire toggles |
+| 4 — Architecture Docs + Benchmarks | ⬜ Not Started | Scheduled after Phase 3A-3D completion |
 
 ---
 

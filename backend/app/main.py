@@ -52,12 +52,14 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 
-# CORS middleware (allow local frontend dev server)
+# CORS middleware (allow local frontend dev servers — CRA :3000 and Vite :5173)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -79,6 +81,9 @@ app.include_router(inbox_router, prefix="/api", tags=["Inbox"])
 
 from app.api.agent_api import router as agent_router  # noqa: E402
 app.include_router(agent_router, prefix="/api", tags=["Agent"])
+
+from app.api.crm_api import router as crm_router  # noqa: E402
+app.include_router(crm_router, prefix="/api", tags=["CRM & Analytics"])
 
 
 @app.get("/health", tags=["System"])

@@ -68,6 +68,7 @@ class AgentRunResponse(BaseModel):
     outcome: str
     tool_calls_count: int
     trace: list | None
+    created_at: str = ""
 
 
 class AgentRunDetailResponse(BaseModel):
@@ -167,12 +168,15 @@ async def trigger_agent_run(
         from app.agent.react_loop import run_agent  # type: ignore[import]
 
         agent_run: AgentRun = await run_agent(
-            message=message,
-            classification=classification,
+            message_id=message.id,
+            classification_id=classification_id,
             urgency=urgency,
-            mode=body.mode,
+            category=classification.category if classification else "general_inquiry",
+            subject=message.subject,
+            body=message.body_sanitized,
+            sender_email=message.sender_email,
             db=db,
-            triggered_by=current_user,
+            mode=body.mode,
         )
     except ImportError as exc:
         logger.exception("react_loop module not found: %s", exc)
@@ -201,6 +205,7 @@ async def trigger_agent_run(
         outcome=agent_run.outcome,
         tool_calls_count=agent_run.tool_calls_count,
         trace=agent_run.trace,
+        created_at=agent_run.created_at.isoformat() if agent_run.created_at else "",
     )
 
 

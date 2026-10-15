@@ -4,7 +4,7 @@ POST /auth/login, POST /auth/logout, GET /auth/me
 """
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,20 +22,46 @@ router = APIRouter()
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
-    credentials: LoginRequest,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> TokenResponse:
     """
     Authenticate with email and password.
+    Accepts both application/json and application/x-www-form-urlencoded (Swagger OAuth2).
     Returns a JWT access token valid for 24 hours.
     """
+    ct = request.headers.get("content-type", "")
+    email = None
+    password = None
+
+    if "application/json" in ct:
+        try:
+            body = await request.json()
+            email = body.get("email") or body.get("username")
+            password = body.get("password")
+        except Exception:
+            pass
+    else:
+        try:
+            form = await request.form()
+            email = form.get("username") or form.get("email")
+            password = form.get("password")
+        except Exception:
+            pass
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing email (username) or password",
+        )
+
     # Fetch user by email
     result = await db.execute(
-        select(User).where(User.email == credentials.email, User.is_active == True)
+        select(User).where(User.email == email, User.is_active == True)
     )
     user = result.scalar_one_or_none()
 
-    if user is None or not verify_password(credentials.password, user.hashed_password):
+    if user is None or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

@@ -198,7 +198,10 @@ class LLMAdapter:
         choices = data.get("choices", [])
         if not choices:
             raise LLMError(f"No choices in LLM response: {data}")
-        content = choices[0].get("message", {}).get("content", "")
+        msg = choices[0].get("message", {})
+        content = msg.get("content") or ""
+        if not content and msg.get("reasoning"):
+            content = msg.get("reasoning")
         if not content:
             finish_reason = choices[0].get("finish_reason", "unknown")
             raise LLMError(f"Empty LLM response content (finish_reason={finish_reason})")

@@ -83,8 +83,8 @@ async def operator_token(http_client: httpx.AsyncClient) -> str:
     response = await http_client.post(
         "/auth/login",
         json={
-            "email": "operator@nexus-software.example",
-            "password": "operator123",
+            "email": "operator@nexus.example",
+            "password": "operator_password_2024",
         },
     )
     assert response.status_code == 200, (

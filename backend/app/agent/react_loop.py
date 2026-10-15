@@ -137,35 +137,15 @@ def get_tool_registry(
     db: AsyncSession,
     agent_run_id: uuid.UUID,
     message_id: uuid.UUID,
+    dry_run: bool = False,
+    urgency: str | None = None,
 ) -> dict[str, Any]:
     """
     Build and return the tool registry for a single agent run.
 
-    Each entry maps a tool name to an **async callable** with signature::
-
+    Each entry maps a tool name to an async callable with signature:
         async (args: dict) -> dict
-
-    The returned dict wraps results in ``{ok, tool_name, data, error?}``
-    automatically — callers do **not** need to add that wrapper.
-
-    The tools in ``_STUB_TOOLS`` are pre-populated with a stub that always
-    returns ``{ok: False, error: 'tool_not_enabled'}``.
-
-    The real tool implementations live in ``app.agent.tools`` and are imported
-    lazily here to avoid circular imports.  If that package is not yet
-    present (e.g. during unit tests), ``ImportError`` is caught and the tool
-    falls back to a stub so the loop can still run in ``dry_run`` mode.
-
-    Args:
-        db:           Active ``AsyncSession`` for DB writes performed by tools.
-        agent_run_id: UUID of the current ``AgentRun`` row.
-        message_id:   UUID of the email ``Message`` being processed.
-
-    Returns:
-        ``dict[str, async callable]``
     """
-
-    # --- stub factory --------------------------------------------------
     def _make_stub(name: str):
         async def _stub(args: dict) -> dict:
             return {"ok": False, "tool_name": name, "error": "tool_not_enabled"}
@@ -173,69 +153,66 @@ def get_tool_registry(
 
     registry: dict[str, Any] = {t: _make_stub(t) for t in _STUB_TOOLS}
 
-    # --- real tools (lazy import) ---------------------------------------
     try:
-        from app.agent.tools import (  # type: ignore[import]
-            search_knowledge_base,
-            get_thread_history,
-            draft_reply,
-            escalate_to_human,
-            create_internal_ticket,
-            flag_for_legal,
+        from app.agent.tools import get_tool_registry as build_active_tools
+        raw_tools = build_active_tools(
+            db=db,
+            agent_run_id=agent_run_id,
+            message_id=message_id,
+            dry_run=dry_run,
+            urgency=urgency,
         )
 
         async def _search_knowledge_base(args: dict) -> dict:
-            return await search_knowledge_base(
-                query=args.get("query", ""),
+            fn = raw_tools["search_knowledge_base"]
+            return await fn(
+                query=str(args.get("query", "")),
                 max_results=int(args.get("max_results", 3)),
-                db=db,
-                agent_run_id=agent_run_id,
-                message_id=message_id,
             )
 
         async def _get_thread_history(args: dict) -> dict:
-            return await get_thread_history(
-                sender_email=args.get("sender_email", ""),
+            fn = raw_tools["get_thread_history"]
+            return await fn(
+                sender_email=str(args.get("sender_email", "")),
                 limit=int(args.get("limit", 10)),
-                db=db,
             )
 
         async def _draft_reply(args: dict) -> dict:
-            return await draft_reply(
-                message_id=uuid.UUID(str(args.get("message_id", message_id))),
-                tone=args.get("tone", "empathetic"),
-                policy_refs=args.get("policy_refs", []),
-                db=db,
-                agent_run_id=agent_run_id,
+            fn = raw_tools["draft_reply"]
+            msg_str = str(args.get("message_id") or args.get("message_id_str") or message_id)
+            return await fn(
+                message_id_str=msg_str,
+                tone=str(args.get("tone", "empathetic")),
+                policy_refs=args.get("policy_refs") or [],
             )
 
         async def _escalate_to_human(args: dict) -> dict:
-            return await escalate_to_human(
-                message_id=uuid.UUID(str(args.get("message_id", message_id))),
-                reason=args.get("reason", ""),
-                priority=args.get("priority", "high"),
-                queue=args.get("queue", "support_operations"),
-                db=db,
-                agent_run_id=agent_run_id,
+            fn = raw_tools["escalate_to_human"]
+            msg_str = str(args.get("message_id") or args.get("message_id_str") or message_id)
+            return await fn(
+                message_id_str=msg_str,
+                reason=str(args.get("reason", "Operator escalation")),
+                priority=str(args.get("priority", "high")),
+                queue=str(args.get("queue", "support_operations")),
             )
 
         async def _create_internal_ticket(args: dict) -> dict:
-            return await create_internal_ticket(
-                source_message_id=uuid.UUID(str(args.get("source_message_id", message_id))),
-                title=args.get("title", ""),
-                body=args.get("body", ""),
-                assignee_queue=args.get("assignee_queue", "support_operations"),
-                db=db,
-                agent_run_id=agent_run_id,
+            fn = raw_tools["create_internal_ticket"]
+            msg_str = str(args.get("source_message_id") or args.get("message_id") or message_id)
+            return await fn(
+                source_message_id_str=msg_str,
+                title=str(args.get("title", "Internal Ticket")),
+                body=str(args.get("body", "")),
+                assignee_queue=str(args.get("assignee_queue", "support_operations")),
             )
 
         async def _flag_for_legal(args: dict) -> dict:
-            return await flag_for_legal(
-                message_id=uuid.UUID(str(args.get("message_id", message_id))),
-                issue_type=args.get("issue_type", "regulatory"),
-                summary=args.get("summary", ""),
-                db=db,
-                agent_run_id=agent_run_id,
+            fn = raw_tools["flag_for_legal"]
+            msg_str = str(args.get("message_id") or args.get("message_id_str") or message_id)
+            return await fn(
+                message_id_str=msg_str,
+                issue_type=str(args.get("issue_type", "regulatory")),
+                summary=str(args.get("summary", "")),
             )
 
         registry.update({
@@ -247,11 +224,10 @@ def get_tool_registry(
             "flag_for_legal": _flag_for_legal,
         })
 
-    except ImportError as exc:
+    except Exception as exc:
         logger.warning(
-            "app.agent.tools not yet available — all active tools will stub: %s", exc
+            "Failed to load tools from app.agent.tools — falling back to stubs: %s", exc
         )
-        # Fall back: register stub callables for every known active tool
         for name in (
             "search_knowledge_base",
             "get_thread_history",
@@ -542,6 +518,8 @@ async def run_agent(
         db=db,
         agent_run_id=agent_run.id,
         message_id=message_id,
+        dry_run=(mode == "dry_run"),
+        urgency=urgency,
     )
 
     # ------------------------------------------------------------------
@@ -582,7 +560,7 @@ async def run_agent(
                 raw_response = await adapter._chat_completion(
                     messages=messages,
                     temperature=0.1,
-                    max_tokens=512,
+                    max_tokens=2048,
                 )
             except LLMError as llm_exc:
                 logger.error("LLM call failed on step %d: %s", step, llm_exc)
